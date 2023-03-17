@@ -7,6 +7,13 @@ import '@openzeppelin/contracts/access/Ownable.sol';
 import '@openzeppelin/contracts/utils/cryptography/MerkleProof.sol';
 import '@openzeppelin/contracts/security/ReentrancyGuard.sol';
 
+import './@rarible/royalties/contracts/impl/RoyaltiesV2Impl.sol';
+import './@rarible/royalties/contracts/IERC2981.sol';
+import './@rarible/royalties/contracts/LibPart.sol';
+import './@rarible/royalties/contracts/LibRoyalties2981.sol';
+import './@rarible/royalties/contracts/RoyaltiesV2.sol';
+
+
 ///////////////////////////////
 //    *          )           //
 //  (  `      ( /( (  (      //
@@ -19,9 +26,11 @@ import '@openzeppelin/contracts/security/ReentrancyGuard.sol';
 //                           //
 ///////////////////////////////                         
 
-contract MeowHelpline is ERC721AQueryable, Ownable, ReentrancyGuard {
+contract MeowHelpline is ERC721AQueryable, Ownable, ReentrancyGuard, RoyaltiesV2Impl {
 
-  using Strings for uint256;
+ using Strings for uint256;
+  string public contractURI;
+  address royaltyReceiver;
 
   bytes32 public merkleRoot;
   mapping(address => bool) public whitelistClaimed;
@@ -37,6 +46,8 @@ contract MeowHelpline is ERC721AQueryable, Ownable, ReentrancyGuard {
   bool public paused = true;
   bool public whitelistMintEnabled = false;
   bool public revealed = false;
+
+  bytes4 private constant _INTERFACE_ID_ERC2981 = 0x2a55205a;
 
   constructor(
     string memory _tokenName,
@@ -77,9 +88,17 @@ contract MeowHelpline is ERC721AQueryable, Ownable, ReentrancyGuard {
   function mint(uint256 _mintAmount) public payable mintCompliance(_mintAmount) mintPriceCompliance(_mintAmount) {
     require(!paused, 'The contract is paused!');
 
-    _safeMint(_msgSender(), _mintAmount);
+    for (uint256 i = 0; i < _mintAmount; i++) {
+        uint256 tokenId = totalSupply() + 1;
+
+    // Royalties
+      LibPart.Part[] memory _royalties = LibRoyalties2981.calculateRoyalties(owner(), 69000); // 6.9%% royalties to the owner
+      _saveRoyalties(tokenId, _royalties);
+      
+      //mint token
+      _safeMint(_msgSender(), _mintAmount);
   }
-  
+}
   function mintForAddress(uint256 _mintAmount, address _receiver) public mintCompliance(_mintAmount) onlyOwner {
     _safeMint(_receiver, _mintAmount);
   }
@@ -137,6 +156,24 @@ contract MeowHelpline is ERC721AQueryable, Ownable, ReentrancyGuard {
     whitelistMintEnabled = _state;
   }
 
+  //Royalty implementation
+  function setRoyalties(uint _tokenID, address payable _royaltiesReceipientAddress, uint96 _percentageBasisPoints) public onlyOwner {
+     LibPart.Part[] memory _royalties = new LibPart.Part[](1);
+     _royalties[0].value = _percentageBasisPoints;
+     _royalties[0].account = _royaltiesReceipientAddress;
+     _saveRoyalties (_tokenID, _royalties);
+  }
+
+  function supportsInterface(bytes4 interfaceId) public view virtual override (ERC721A) returns (bool){
+      if(interfaceId == LibRoyalties2981._INTERFACE_ID_ROYALTIES){
+        return true;
+      }
+      if(interfaceId == _INTERFACE_ID_ERC2981){
+        return true;
+      }
+      return super.supportsInterface(interfaceId);
+    }
+    //////////////////////////////////////////////////////////////////////////////////
   function withdraw() public onlyOwner nonReentrant {
     // =============================================================================
 
