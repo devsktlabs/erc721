@@ -1,0 +1,23 @@
+{
+  "name": "emerald",
+  "version": "1.0.0",
+  "description": "TODO: Give a short introduction of your project. Let this section explain the objectives or the motivation behind this project.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "http://192.168.0.24:8080/DefaultCollection/202202-023-EmeraldNodes/_git/smartcontract"
+  },
+  "author": "",
+  "dependencies": {
+    "@openzeppelin/contracts": "^4.5.0",
+    "@openzeppelin/contracts-upgradeable": "^4.5.1",
+    "@openzeppelin/truffle-upgrades": "^1.12.0",
+    "@truffle/hdwallet-provider": "^2.0.3",
+    "dotenv": "^16.0.3",
+    "truffle-plugin-verify": "^0.5.21"
+  },
+  "license": "ISC"
+}
